@@ -1,15 +1,14 @@
 package com.xonestep.one.jcsd.sonaroneoauth;
 
 import org.sonar.api.config.PropertyDefinition;
+import org.sonar.api.config.Settings;
 import org.sonar.api.server.ServerSide;
 
+import javax.annotation.CheckForNull;
 import java.util.Arrays;
 import java.util.List;
-
-import static java.lang.String.format;
 import static java.lang.String.valueOf;
 import static org.sonar.api.PropertyType.BOOLEAN;
-import static org.sonar.api.PropertyType.SINGLE_SELECT_LIST;
 import static org.sonar.api.PropertyType.STRING;
 
 /**
@@ -23,13 +22,45 @@ public class OneSettings {
     private static final String ENABLED = "sonar.auth.github.enabled";
     private static final String ALLOW_USERS_TO_SIGN_UP = "sonar.auth.github.allowUsersToSignUp";
     private static final String GROUPS_SYNC = "sonar.auth.github.groupsSync";
-    private static final String API_URL = "sonar.auth.github.apiUrl";
     private static final String WEB_URL = "sonar.auth.github.webUrl";
-
+    private static final String SCOPE = "sonar.auth.github.webUrl";
     private static final String ORGANIZATIONS = "sonar.auth.github.organizations";
-
     private static final String CATEGORY = "github";
     private static final String SUBCATEGORY = "authentication";
+    public static final String NONE_SCOPE = "none";
+
+    private final Settings settings;
+
+    public OneSettings(Settings settings) {
+        this.settings = settings;
+    }
+
+    @CheckForNull
+    public String url() {
+        return settings.getString(WEB_URL);
+    }
+
+    @CheckForNull
+    public String clientId() {
+        return settings.getString(CLIENT_ID);
+    }
+
+    @CheckForNull
+    public String secret() {
+        return settings.getString(CLIENT_SECRET);
+    }
+
+    public String scope() {
+        return settings.getString(SCOPE);
+    }
+
+    public boolean isEnabled() {
+        return settings.getBoolean(ENABLED) && clientId() != null && secret() != null;
+    }
+
+    public boolean allowUsersToSignUp() {
+        return settings.getBoolean(ALLOW_USERS_TO_SIGN_UP);
+    }
 
     public static List<PropertyDefinition> definitions() {
         int index = 1;
@@ -75,7 +106,7 @@ public class OneSettings {
                         .defaultValue(valueOf(false))
                         .index(index++)
                         .build(),
-                PropertyDefinition.builder(API_URL)
+                PropertyDefinition.builder(SCOPE)
                         .name("The API url for a GitHub instance.")
                         .description("The API url for a GitHub instance. https://api.github.com/ for github.com, https://github.company.com/api/v3/ when using Github Enterprise")
                         .category(CATEGORY)
