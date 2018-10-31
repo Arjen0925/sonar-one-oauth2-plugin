@@ -52,30 +52,16 @@ public class OneIdentityProvider implements OAuth2IdentityProvider {
 
     public void init(InitContext initContext) {
 
-        String referer = initContext.getRequest().getHeader("Referer");
-        LOGGER.info("referer: {}", referer);
-        OAuthService scribe = prepareScribe(initContext, URLUtil.getReturnUrlFromReferer(referer)).build();
-        String url = scribe.getAuthorizationUrl(EMPTY_TOKEN);
-        initContext.redirectTo(url);
 
-       /* String referer = initContext.getRequest().getHeader("Referer");
-        LOGGER.info("referer: {}", referer);
-        String retURL = URLUtil.getReturnUrlFromReferer(referer);
-        LOGGER.info("retURL: {}", retURL);
         OAuthService scribe = prepareScribe(initContext).build();
         String url = scribe.getAuthorizationUrl(EMPTY_TOKEN);
-        String redirectTo = URLUtil.getRedirectTo(url, retURL);
-        LOGGER.info("redirectTo: {}", redirectTo);
-        initContext.redirectTo(redirectTo);*/
+        initContext.redirectTo(url);
 
     }
 
     public void callback(CallbackContext callbackContext) {
         HttpServletRequest request = callbackContext.getRequest();
-        String referer = callbackContext.getRequest().getHeader("Referer");
-        LOGGER.info("callback-referer: {}", referer);
-        String retURL = URLUtil.getReturnUrlFromReferer(referer);
-        OAuthService scribe = prepareScribe(callbackContext,retURL).build();
+        OAuthService scribe = prepareScribe(callbackContext).build();
         String oAuthVerifier = request.getParameter("code");
 
         Token accessToken = scribe.getAccessToken(EMPTY_TOKEN, new Verifier(oAuthVerifier));
@@ -128,7 +114,7 @@ public class OneIdentityProvider implements OAuth2IdentityProvider {
 
 
 
-    private ServiceBuilder prepareScribe(OAuth2IdentityProvider.OAuth2Context context,String callbackUrl) {
+    private ServiceBuilder prepareScribe(OAuth2IdentityProvider.OAuth2Context context) {
         if (!isEnabled()) {
             throw new IllegalStateException("One Authentication is disabled");
         }
@@ -137,8 +123,7 @@ public class OneIdentityProvider implements OAuth2IdentityProvider {
                 .apiKey(oneSettings.clientId())
                 .apiSecret(oneSettings.secret())
                 .grantType(OAuthConstants.AUTHORIZATION_CODE)
-                .callback(callbackUrl+"/oauth2/callback/newtouchone");
-        LOGGER.info("callback-url: {}", callbackUrl);
+                .callback(context.getCallbackUrl());
 
         if (oneSettings.scope() != null && !oneSettings.NONE_SCOPE.equals(oneSettings.scope())) {
             serviceBuilder.scope(oneSettings.scope());
