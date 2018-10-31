@@ -124,6 +124,7 @@ public class OneIdentityProvider implements OAuth2IdentityProvider {
                 .apiSecret(oneSettings.secret())
                 .grantType(OAuthConstants.AUTHORIZATION_CODE)
                 .callback(context.getCallbackUrl());
+        LOGGER.info("call back url:"+context.getCallbackUrl());
 
         if (oneSettings.scope() != null && !oneSettings.NONE_SCOPE.equals(oneSettings.scope())) {
             serviceBuilder.scope(oneSettings.scope());
