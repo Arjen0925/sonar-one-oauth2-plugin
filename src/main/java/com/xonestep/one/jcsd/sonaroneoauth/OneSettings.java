@@ -1,3 +1,22 @@
+/*
+ * One OAuth 2.0 Authentication for SonarQube
+ * Copyright (C) 2009-2018 SonarSource SA
+ * mailto:info AT sonarsource DOT com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package com.xonestep.one.jcsd.sonaroneoauth;
 
 import org.sonar.api.config.PropertyDefinition;
@@ -7,9 +26,10 @@ import org.sonar.api.server.ServerSide;
 import javax.annotation.CheckForNull;
 import java.util.Arrays;
 import java.util.List;
+
+import static org.sonar.api.PropertyType.*;
 import static java.lang.String.valueOf;
-import static org.sonar.api.PropertyType.BOOLEAN;
-import static org.sonar.api.PropertyType.STRING;
+
 
 /**
  * created by jinxingjia on 2018/10/26 9:05
@@ -17,17 +37,19 @@ import static org.sonar.api.PropertyType.STRING;
 @ServerSide
 public class OneSettings {
 
-    private static final String CLIENT_ID = "sonar.auth.github.clientId.secured";
-    private static final String CLIENT_SECRET = "sonar.auth.github.clientSecret.secured";
-    private static final String ENABLED = "sonar.auth.github.enabled";
-    private static final String ALLOW_USERS_TO_SIGN_UP = "sonar.auth.github.allowUsersToSignUp";
-    private static final String GROUPS_SYNC = "sonar.auth.github.groupsSync";
-    private static final String WEB_URL = "sonar.auth.github.webUrl";
-    private static final String SCOPE = "sonar.auth.github.webUrl";
-    private static final String ORGANIZATIONS = "sonar.auth.github.organizations";
-    private static final String CATEGORY = "github";
+    private static final String CLIENT_ID = "sonar.auth.one.oauth2.clientId";
+    private static final String CLIENT_SECRET = "sonar.auth.one.oauth2.clientSecret";
+    private static final String ENABLED = "sonar.auth.one.oauth2.enabled";
+    private static final String ALLOW_USERS_TO_SIGN_UP = "sonar.auth.one.oauth2.allowUsersToSignUp";
+    private static final String GROUPS_SYNC = "sonar.auth.one.oauth2.groupsSync";
+    private static final String ONE_USER_URL = "sonar.auth.one.oauth2.sso.url";
+    private static final String ONE_SSO_URL = "sonar.auth.one.oauth2.user.url";
+    private static final String SCOPE = "sonar.auth.one.scope";
+    private static final String ORGANIZATIONS = "sonar.auth.one.oauth2.organizations";
+    private static final String CATEGORY = "newtouch-one";
     private static final String SUBCATEGORY = "authentication";
     public static final String NONE_SCOPE = "none";
+    public static final String READ_USER_SCOPE = "read_user";
 
     private final Settings settings;
 
@@ -36,8 +58,13 @@ public class OneSettings {
     }
 
     @CheckForNull
-    public String url() {
-        return settings.getString(WEB_URL);
+    public String ssoUrl() {
+        return settings.getString(ONE_SSO_URL);
+    }
+
+    @CheckForNull
+    public String userUrl() {
+        return settings.getString(ONE_USER_URL);
     }
 
     @CheckForNull
@@ -67,7 +94,7 @@ public class OneSettings {
         return Arrays.asList(
                 PropertyDefinition.builder(ENABLED)
                         .name("Enabled")
-                        .description("Enable GitHub users to login. Value is ignored if client ID and secret are not defined.")
+                        .description("Enable One users to login. Value is ignored if client ID and secret are not defined.")
                         .category(CATEGORY)
                         .subCategory(SUBCATEGORY)
                         .type(BOOLEAN)
@@ -76,14 +103,14 @@ public class OneSettings {
                         .build(),
                 PropertyDefinition.builder(CLIENT_ID)
                         .name("Client ID")
-                        .description("Client ID provided by GitHub when registering the application.")
+                        .description("Client ID provided by One when registering the application.")
                         .category(CATEGORY)
                         .subCategory(SUBCATEGORY)
                         .index(index++)
                         .build(),
                 PropertyDefinition.builder(CLIENT_SECRET)
                         .name("Client Secret")
-                        .description("Client password provided by GitHub when registering the application.")
+                        .description("Client password provided by One when registering the application.")
                         .category(CATEGORY)
                         .subCategory(SUBCATEGORY)
                         .index(index++)
@@ -97,7 +124,7 @@ public class OneSettings {
                         .defaultValue(valueOf(true))
                         .index(index++)
                         .build(),
-                PropertyDefinition.builder(GROUPS_SYNC)
+                /*PropertyDefinition.builder(GROUPS_SYNC)
                         .name("Synchronize teams as groups")
                         .description("For each team he belongs to, the user will be associated to a group named 'Organisation/Team' (if it exists) in SonarQube.")
                         .category(CATEGORY)
@@ -105,34 +132,43 @@ public class OneSettings {
                         .type(BOOLEAN)
                         .defaultValue(valueOf(false))
                         .index(index++)
+                        .build(),*/
+                PropertyDefinition.builder(ONE_USER_URL)
+                        .name("The WEB url for a One_user instance.")
+                        .description("The WEB url for a One_user instance")
+                        .category(CATEGORY)
+                        .subCategory(SUBCATEGORY)
+                        .type(STRING)
+                        .defaultValue(valueOf("http://user-web.test.onetest.newtouch.com"))
+                        .index(index++)
                         .build(),
                 PropertyDefinition.builder(SCOPE)
-                        .name("The API url for a GitHub instance.")
-                        .description("The API url for a GitHub instance. https://api.github.com/ for github.com, https://github.company.com/api/v3/ when using Github Enterprise")
+                        .name("One access scope.")
+                        .description("Scope provided by One when access user info")
+                        .category(CATEGORY)
+                        .subCategory(SUBCATEGORY)
+                        .type(SINGLE_SELECT_LIST)
+                        .options(NONE_SCOPE, READ_USER_SCOPE)
+                        .defaultValue(READ_USER_SCOPE)
+                        .index(index++)
+                        .build(),
+                PropertyDefinition.builder(ONE_SSO_URL)
+                        .name("The WEB url for a ONE_SSO instance.")
+                        .description("The WEB url for a ONE_SSO instance.")
                         .category(CATEGORY)
                         .subCategory(SUBCATEGORY)
                         .type(STRING)
-                        .defaultValue(valueOf("https://api.github.com/"))
+                        .defaultValue(valueOf("http://web.test.onetest.newtouch.com"))
                         .index(index++)
-                        .build(),
-                PropertyDefinition.builder(WEB_URL)
-                        .name("The WEB url for a GitHub instance.")
-                        .description("The WEB url for a GitHub instance. " +
-                                "https://github.com/ for github.com, https://github.company.com/ when using GitHub Enterprise.")
-                        .category(CATEGORY)
-                        .subCategory(SUBCATEGORY)
-                        .type(STRING)
-                        .defaultValue(valueOf("https://github.com/"))
-                        .index(index++)
-                        .build(),
-                PropertyDefinition.builder(ORGANIZATIONS)
-                        .name("Organizations")
-                        .description("Only members of these organizations will be able to authenticate to the server. " +
-                                "If a user is a member of any of the organizations listed they will be authenticated.")
-                        .multiValues(true)
-                        .category(CATEGORY)
-                        .subCategory(SUBCATEGORY)
-                        .index(index++)
+                        /* .build(),
+                 PropertyDefinition.builder(ORGANIZATIONS)
+                         .name("Organizations")
+                         .description("Only members of these organizations will be able to authenticate to the server. " +
+                                 "If a user is a member of any of the organizations listed they will be authenticated.")
+                         .multiValues(true)
+                         .category(CATEGORY)
+                         .subCategory(SUBCATEGORY)
+                         .index(index++)*/
                         .build());
     }
 }

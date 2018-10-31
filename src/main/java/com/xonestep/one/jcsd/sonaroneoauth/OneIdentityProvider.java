@@ -1,3 +1,22 @@
+/*
+ * One OAuth 2.0 Authentication for SonarQube
+ * Copyright (C) 2009-2018 SonarSource SA
+ * mailto:info AT sonarsource DOT com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package com.xonestep.one.jcsd.sonaroneoauth;
 
 import com.github.scribejava.core.builder.ServiceBuilder;
@@ -33,22 +52,35 @@ public class OneIdentityProvider implements OAuth2IdentityProvider {
 
     public void init(InitContext initContext) {
 
-
-        OAuthService scribe = prepareScribe(initContext).build();
+        String referer = initContext.getRequest().getHeader("Referer");
+        LOGGER.info("referer: {}", referer);
+        OAuthService scribe = prepareScribe(initContext, URLUtil.getReturnUrlFromReferer(referer)).build();
         String url = scribe.getAuthorizationUrl(EMPTY_TOKEN);
         initContext.redirectTo(url);
+
+       /* String referer = initContext.getRequest().getHeader("Referer");
+        LOGGER.info("referer: {}", referer);
+        String retURL = URLUtil.getReturnUrlFromReferer(referer);
+        LOGGER.info("retURL: {}", retURL);
+        OAuthService scribe = prepareScribe(initContext).build();
+        String url = scribe.getAuthorizationUrl(EMPTY_TOKEN);
+        String redirectTo = URLUtil.getRedirectTo(url, retURL);
+        LOGGER.info("redirectTo: {}", redirectTo);
+        initContext.redirectTo(redirectTo);*/
 
     }
 
     public void callback(CallbackContext callbackContext) {
         HttpServletRequest request = callbackContext.getRequest();
-        OAuthService scribe = prepareScribe(callbackContext).build();
+        String referer = callbackContext.getRequest().getHeader("Referer");
+        LOGGER.info("callback-referer: {}", referer);
+        String retURL = URLUtil.getReturnUrlFromReferer(referer);
+        OAuthService scribe = prepareScribe(callbackContext,retURL).build();
         String oAuthVerifier = request.getParameter("code");
 
         Token accessToken = scribe.getAccessToken(EMPTY_TOKEN, new Verifier(oAuthVerifier));
 
-        OAuthRequest userRequest = new OAuthRequest(Verb.GET, oneSettings.url() +
-                "/api/" + "/user", scribe);
+        OAuthRequest userRequest = new OAuthRequest(Verb.GET, oneSettings.userUrl() +"/one/sso/user", scribe);
         scribe.signRequest(accessToken, userRequest);
 
         com.github.scribejava.core.model.Response userResponse = userRequest.send();
@@ -72,16 +104,16 @@ public class OneIdentityProvider implements OAuth2IdentityProvider {
     }
 
     public String getKey() {
-        return "one";
+        return "newtouchone";
     }
 
     public String getName() {
-        return "one";
+        return "NewtouchOne";
     }
 
     public Display getDisplay() {
         return Display.builder()
-                .setIconPath("/static/authgitlab/gitlab.svg").setBackgroundColor("#333c47").build();
+                .setIconPath("/static/oneoauth2/newtouch-one.png").setBackgroundColor("#333c47").build();
     }
 
     public boolean isEnabled() {
@@ -96,16 +128,17 @@ public class OneIdentityProvider implements OAuth2IdentityProvider {
 
 
 
-    private ServiceBuilder prepareScribe(OAuth2IdentityProvider.OAuth2Context context) {
+    private ServiceBuilder prepareScribe(OAuth2IdentityProvider.OAuth2Context context,String callbackUrl) {
         if (!isEnabled()) {
             throw new IllegalStateException("One Authentication is disabled");
         }
         ServiceBuilder serviceBuilder = new ServiceBuilder()
-                .provider(new OneAuthApi(oneSettings.url()))
+                .provider(new OneAuthApi(oneSettings.ssoUrl()))
                 .apiKey(oneSettings.clientId())
                 .apiSecret(oneSettings.secret())
                 .grantType(OAuthConstants.AUTHORIZATION_CODE)
-                .callback(context.getCallbackUrl());
+                .callback(callbackUrl+"/oauth2/callback/newtouchone");
+        LOGGER.info("callback-url: {}", callbackUrl);
 
         if (oneSettings.scope() != null && !oneSettings.NONE_SCOPE.equals(oneSettings.scope())) {
             serviceBuilder.scope(oneSettings.scope());
