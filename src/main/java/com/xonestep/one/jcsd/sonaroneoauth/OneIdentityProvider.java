@@ -56,6 +56,7 @@ public class OneIdentityProvider implements OAuth2IdentityProvider {
         OAuthService scribe = prepareScribe(initContext).build();
         String url = scribe.getAuthorizationUrl(EMPTY_TOKEN);
         initContext.redirectTo(url);
+        LOGGER.info("init   call back url:"+url);
 
     }
 
