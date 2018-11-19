@@ -43,16 +43,4 @@ public class URLUtil {
 
         return retUrl;
     }
-    public static String getRedirectTo(String retUrl,String referer) {
-        URL url ;
-        String redirectTo = "/";
-        try {
-            url = new URL(retUrl);
-             redirectTo =referer+  url.getPath();
-
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        }
-        return redirectTo;
-    }
 }

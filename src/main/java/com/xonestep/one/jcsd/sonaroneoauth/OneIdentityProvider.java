@@ -42,21 +42,26 @@ import static java.lang.String.format;
 public class OneIdentityProvider implements OAuth2IdentityProvider {
 
 
-
     private static final Logger LOGGER = Loggers.get(OneIdentityProvider.class);
 
     private final OneSettings oneSettings;
+
     public OneIdentityProvider(OneSettings oneSettings) {
         this.oneSettings = oneSettings;
     }
 
+    private  String RET_URL ;
+
     public void init(InitContext initContext) {
 
-
+        String referer = initContext.getRequest().getHeader("Referer");
+        LOGGER.info("referer: {}", referer);
+        this.RET_URL = URLUtil.getReturnUrlFromReferer(referer)+"/oauth2/callback/newtouchone";
+        LOGGER.info("RET_URL: {}", RET_URL);
         OAuthService scribe = prepareScribe(initContext).build();
         String url = scribe.getAuthorizationUrl(EMPTY_TOKEN);
         initContext.redirectTo(url);
-        LOGGER.info("init   call back url:"+url);
+        LOGGER.info("init   call back url:" + url);
 
     }
 
@@ -67,7 +72,7 @@ public class OneIdentityProvider implements OAuth2IdentityProvider {
 
         Token accessToken = scribe.getAccessToken(EMPTY_TOKEN, new Verifier(oAuthVerifier));
 
-        OAuthRequest userRequest = new OAuthRequest(Verb.GET, oneSettings.userUrl() +"/one/sso/user", scribe);
+        OAuthRequest userRequest = new OAuthRequest(Verb.GET, oneSettings.userUrl() + "/one/sso/user", scribe);
         scribe.signRequest(accessToken, userRequest);
 
         com.github.scribejava.core.model.Response userResponse = userRequest.send();
@@ -75,7 +80,8 @@ public class OneIdentityProvider implements OAuth2IdentityProvider {
             throw new IllegalStateException(format("Fail to authenticate the user. Error code is %s, Body of the response is %s", userResponse.getCode(), userResponse.getBody()));
         }
         String userResponseBody = userResponse.getBody();
-        LOGGER.trace("User response received : %s", userResponseBody);
+        LOGGER.info("User response received : %s", userResponseBody);
+        LOGGER.info("User response received : %s" + userResponseBody);
         GsonUser gsonUser = GsonUser.parse(userResponseBody);
 
         UserIdentity.Builder builder = UserIdentity.builder().setProviderLogin(gsonUser.getUsername()).setLogin(gsonUser.getUsername()).setName(gsonUser.getName()).setEmail(gsonUser.getEmail());
@@ -112,10 +118,8 @@ public class OneIdentityProvider implements OAuth2IdentityProvider {
     }
 
 
-
-
-
     private ServiceBuilder prepareScribe(OAuth2IdentityProvider.OAuth2Context context) {
+        String callbackUrl = this.RET_URL;
         if (!isEnabled()) {
             throw new IllegalStateException("One Authentication is disabled");
         }
@@ -124,9 +128,10 @@ public class OneIdentityProvider implements OAuth2IdentityProvider {
                 .apiKey(oneSettings.clientId())
                 .apiSecret(oneSettings.secret())
                 .grantType(OAuthConstants.AUTHORIZATION_CODE)
-                .callback(context.getCallbackUrl());
-        LOGGER.info("call back url:"+context.getCallbackUrl());
-
+                .callback(callbackUrl);
+        // .callback("http://sonarqube.dev.onetest.newtouch.com/oauth2/callback/newtouchone");
+        LOGGER.info("private call back url:" + context.getCallbackUrl());
+        LOGGER.info("new call back url:" + callbackUrl);
         if (oneSettings.scope() != null && !oneSettings.NONE_SCOPE.equals(oneSettings.scope())) {
             serviceBuilder.scope(oneSettings.scope());
         }
